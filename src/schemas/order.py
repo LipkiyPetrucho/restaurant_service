@@ -14,7 +14,7 @@ class DishInOrder(BaseModel):
     category: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class OrderRead(BaseModel):
     id: int
@@ -24,7 +24,7 @@ class OrderRead(BaseModel):
     dishes: List[DishInOrder]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class OrderStatusUpdate(BaseModel):
     status: str
