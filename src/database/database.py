@@ -1,66 +1,58 @@
-"""Продвинутая конфигурация базы данных с оптимизациями производительности."""
-from collections.abc import AsyncGenerator
-from uuid import uuid4
+"""Модуль для работы с базой данных."""
+from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import DeclarativeBase
 
 from src.config import settings
-from src.models.base import BaseModel
 
-# Создаем движок с продвинутыми настройками производительности
-async_engine = create_async_engine(
-    url=settings.DATABASE_URL,
-    echo=settings.DB_ECHO,  # Управляем логированием через переменные окружения
-    future=True,  # Используем SQLAlchemy 2.0 API
-    pool_size=settings.DB_POOL_SIZE,  # Настраиваемый размер пула соединений
-    max_overflow=settings.DB_MAX_OVERFLOW,  # Настраиваемое количество дополнительных соединений
-    connect_args={
-        # Уникальные имена для prepared statements для избежания конфликтов
-        'prepared_statement_name_func': lambda: f'__asyncpg_{uuid4()}__',
-    },
+
+class BaseModel(DeclarativeBase):
+    """Базовый класс для всех моделей проекта."""
+    
+    __abstract__ = True
+
+    repr_cols_num = 3
+    repr_cols = ()
+
+    def __repr__(self) -> str:
+        """Красивое отображение объекта модели."""
+        cols = []
+        for idx, col in enumerate(self.__table__.columns.keys()):
+            if col in self.repr_cols or idx < self.repr_cols_num:
+                cols.append(f'{col}={getattr(self, col)}')
+
+        return f'<{self.__class__.__name__} {", ".join(cols)}>'
+
+
+engine = create_async_engine(
+    settings.DB_URL,
+    echo=settings.DB_ECHO,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    future=True
 )
 
-# Фабрика сессий с оптимальными настройками
+
 async_session_maker = async_sessionmaker(
-    bind=async_engine,
+    engine,
     class_=AsyncSession,
-    autoflush=False,  # Отключаем автоматический flush для лучшего контроля
-    autocommit=False,  # Явное управление транзакциями
-    expire_on_commit=False,  # Объекты остаются доступными после commit
+    expire_on_commit=False
 )
 
-# Используем новый BaseModel вместо declarative_base()
+# Теперь Base это и есть BaseModel
 Base = BaseModel
 
-
-async def get_async_connection() -> AsyncGenerator[AsyncConnection, None]:
-    """Получение асинхронного соединения с базой данных.
-    
-    Используется для выполнения DDL операций, миграций и других 
-    операций, которые требуют прямого доступа к соединению.
-    """
-    async with async_engine.begin() as conn:
-        yield conn
-
-
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """Получение асинхронной сессии для работы с ORM.
-    
-    Основная функция для dependency injection в FastAPI роутерах.
-    """
+    """Получение асинхронной сессии базы данных."""
     async with async_session_maker() as session:
         yield session
 
-
-# Алиас для обратной совместимости
-get_db = get_async_session
-
 # Экспорт для удобного импорта
 __all__ = [
-    "async_engine",
+    "engine",
     "async_session_maker", 
     "Base",
-    "get_async_connection",
-    "get_async_session",
-    "get_db"
+    "BaseModel",  # Экспортируем оба имени для совместимости
+    "get_async_session"
 ]

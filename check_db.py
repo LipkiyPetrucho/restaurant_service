@@ -2,45 +2,39 @@
 """
 Скрипт для проверки подключения к базе данных
 """
-import asyncio
-import asyncpg
+
 import os
+import sys
+import psycopg2
+from src.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://restaurant_user:restaurant_password@db:5432/restaurant_db")
-
-async def check_database():
+def main():
+    """Проверка подключения к базе данных."""
+    print("🔍 Проверка подключения к базе данных...")
+    
+    # Парсим URL базы данных
+    db_url = settings.DB_URL
+    url_parts = db_url.replace("postgresql+asyncpg://", "postgresql://")
+    
     try:
-        # Парсим URL подключения
-        url_parts = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-        print(f"Подключение к: {url_parts}")
-        
-        # Создаем подключение
-        conn = await asyncpg.connect(url_parts)
+        # Пытаемся подключиться к базе данных
+        conn = psycopg2.connect(url_parts)
+        cursor = conn.cursor()
         
         # Выполняем простой запрос
-        result = await conn.fetchval('SELECT version()')
-        print(f"✅ Подключение успешно!")
-        print(f"Версия PostgreSQL: {result}")
+        cursor.execute("SELECT version();")
+        db_version = cursor.fetchone()
         
-        # Проверяем существование таблиц
-        tables = await conn.fetch("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-        """)
+        print(f"✅ Подключение к базе данных успешно!")
+        print(f"📊 Версия PostgreSQL: {db_version[0]}")
         
-        print(f"Найдено таблиц: {len(tables)}")
-        for table in tables:
-            print(f"  - {table['table_name']}")
-            
-        await conn.close()
+        cursor.close()
+        conn.close()
         
     except Exception as e:
         print(f"❌ Ошибка подключения к базе данных: {e}")
-        return False
-        
-    return True
+        print(f"🔗 DB_URL: {settings.DB_URL}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    success = asyncio.run(check_database())
-    exit(0 if success else 1) 
+    main() 

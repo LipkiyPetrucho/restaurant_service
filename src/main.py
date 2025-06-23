@@ -1,32 +1,41 @@
-import asyncio
-from contextlib import asynccontextmanager
+import os
+
+from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import create_async_engine
-from src.api.v1.routers import dishes as dishes_router, orders as orders_router
-from src.database import Base
-from src.config import settings
+from fastapi.responses import ORJSONResponse
 
-engine = create_async_engine(settings.DATABASE_URL)
+from src.api import router
+from src.metadata import DESCRIPTION, TAG_METADATA, TITLE, VERSION
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Создаем таблицы при запуске
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    # Закрываем движок при завершении
-    await engine.dispose()
 
-app = FastAPI(
-    title="Restaurant Order Service",
-    description="API сервис для управления заказами еды в ресторане",
-    version="1.0.0",
-    lifespan=lifespan
-)
+def create_fast_api_app() -> FastAPI:
+    load_dotenv(find_dotenv('.env'))
+    env_name = os.getenv('MODE', 'DEV')
 
-# Подключаем маршруты API v1
-app.include_router(dishes_router.router, prefix="/api/v1")
-app.include_router(orders_router.router, prefix="/api/v1")
+    if env_name != 'PROD':
+        fastapi_app = FastAPI(
+            default_response_class=ORJSONResponse,
+            title=TITLE,
+            description=DESCRIPTION,
+            version=VERSION,
+            openapi_tags=TAG_METADATA,
+        )
+    else:
+        fastapi_app = FastAPI(
+            default_response_class=ORJSONResponse,
+            title=TITLE,
+            description=DESCRIPTION,
+            version=VERSION,
+            openapi_tags=TAG_METADATA,
+            docs_url=None,
+            redoc_url=None,
+        )
+
+    fastapi_app.include_router(router, prefix='/api')
+    return fastapi_app
+
+
+app = create_fast_api_app()
 
 @app.get("/", tags=["Health"])
 async def root():

@@ -20,7 +20,7 @@ from src.models import order  # noqa
 config = context.config
 
 # Устанавливаем URL базы данных из настроек
-config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
+config.set_main_option('sqlalchemy.url', settings.DB_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

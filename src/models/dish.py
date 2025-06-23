@@ -1,9 +1,9 @@
 from sqlalchemy.orm import relationship, Mapped
 from sqlalchemy import text
-from src.models.base import BaseModel
+from src.database import Base
 from src.utils.custom_types import integer_pk, str_required, str_optional, float_price
 
-class Dish(BaseModel):
+class Dish(Base):
     __tablename__ = "dishes"
     
     # Кастомные настройки отображения - показываем id, name, price

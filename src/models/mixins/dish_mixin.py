@@ -1,8 +1,8 @@
 """Миксин для связи с блюдами."""
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Table
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy import Column, ForeignKey, Integer, Table
+from sqlalchemy.orm import Mapped, declared_attr, relationship
 
 if TYPE_CHECKING:
     from src.models.dish import Dish
@@ -30,9 +30,9 @@ class DishRelatedMixin:
         return Table(
             association_table_name,
             cls.metadata,
-            mapped_column("id", primary_key=True),
-            mapped_column(f"{table_name[:-1]}_id", ForeignKey(f"{table_name}.id", ondelete="CASCADE"), nullable=False),
-            mapped_column("dish_id", ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False)
+            Column("id", Integer, primary_key=True),
+            Column(f"{table_name[:-1]}_id", Integer, ForeignKey(f"{table_name}.id", ondelete="CASCADE"), nullable=False),
+            Column("dish_id", Integer, ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False)
         )
 
     @declared_attr

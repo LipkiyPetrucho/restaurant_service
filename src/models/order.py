@@ -1,10 +1,10 @@
 from sqlalchemy.orm import relationship, Mapped
-from src.models.base import BaseModel
+from src.database import Base
 from src.models.mixins.dish_mixin import DishRelatedMixin
 from src.utils.custom_types import integer_pk, str_required, order_status, created_at
 
 
-class Order(BaseModel, DishRelatedMixin):
+class Order(Base, DishRelatedMixin):
     __tablename__ = "orders"
     
     # Кастомные настройки отображения - показываем id, customer_name, status
